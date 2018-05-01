@@ -1,0 +1,211 @@
+<!-- Michael Nguyen mnguye84@ucsc.edu CMPS165 Presentation 1 -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet"> <!-- https://fonts.google.com/?selection.family=Oswald -->
+</head>
+<style>
+
+body {
+    background: #333;
+    overflow: scroll; 
+    margin: 0;
+    padding: 0;
+}
+
+circle {
+    stroke: #000;
+    stroke-width: 1.5px; /* Circle's stroke size */
+}
+    
+h1 {
+    font-family: 'Oswald', sans-serif;
+    color: white;
+    font-size: 40px;
+}
+    
+p {
+    font-family: 'Oswald', sans-serif;
+    color: cornsilk;
+}
+
+/* Centering the packing https://css-tricks.com/centering-percentage-widthheight-elements/ */
+.wrapper {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* SLIDER FROM https://www.w3schools.com/howto/howto_js_rangeslider.asp */
+.slidecontainer {
+    width: 100%; /* Width of the outside container */
+}
+
+/* The slider itself */
+.slider {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    width: 100%; /* Full-width */
+    height: 25px; /* Specified height */
+    background: #d3d3d3; /* Grey background */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */ 
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #4CAF50; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #4CAF50; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+</style>
+<div class="wrapper">
+    <div style="float:left;">
+        <h1>Rainbow Pack: d3.packSiblings()</h1>
+        <svg width="540" height="540"><g id="circle-group" transform="translate(270,270)"></g></svg> <!-- SVG element for d3 visualization  -->
+        <div class="slidecontainer">
+            <p id="colortag">Color Density: 2</p>
+            <input type="range" min="1" max="5" value="2" class="slider" id="colorRange">
+        </div>
+        <div class="slidecontainer">
+            <p id="speedtag">Transition Speed: 1000</p>
+            <input type="range" min="2" max="7" value="4" class="slider" id="speedRange">
+        </div>
+        <div class="slidecontainer">
+            <p id="sizetag">Circle Size: 17</p>
+            <input type="range" min="13" max="25" value="17" class="slider" id="sizeRange">
+        </div>
+    </div>
+</div>
+
+<script src="//d3js.org/d3.v4.0.0-alpha.35.min.js"></script>  <!-- D3 Javascript -->
+
+<script>
+var SIZE_AVG = 9;
+var SPEED_INCREMENT = 250;
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"), // Converts string to number
+    height = +svg.attr("height"), // Converts string to number
+    size = Math.max(width, height); // Size is equal to largest number
+    
+// First Initialization of Circles
+populate();
+
+// Slider functionality
+var colorSlider = document.getElementById("colorRange");
+var speedSlider = document.getElementById("speedRange");
+var sizeSlider = document.getElementById("sizeRange");
+
+// On-screen user value interface
+var colortag = document.getElementById("colortag");
+var speedtag = document.getElementById("speedtag");
+var sizetag = document.getElementById("sizetag");
+    
+// Update the current slider value (each time you drag the slider handle)
+colorSlider.oninput = function() {
+    console.log("The color density is:" + this.value); // Print slider value to console 
+    colortag.innerHTML = "Color Density: " + this.value; // Set p tag to new value
+    localStorage.color = this.value; // Save to local session for population
+    populate(); // Populate circles to screen
+}
+
+// Update the current slider value (each time you drag the slider handle)
+speedSlider.oninput = function() {
+    console.log("The transition speed is:" + this.value); // Print slider value to console 
+    speedtag.innerHTML = "Transition Speed: " + this.value * SPEED_INCREMENT; // Set p tag to new value
+    localStorage.speed = this.value; // Save to local session for population
+    populate(); // Populate circles to screen
+}
+
+// Update the current slider value (each time you drag the slider handle)
+sizeSlider.oninput = function() {
+    console.log("The size average is:" + this.value); // Print slider value to console 
+    sizetag.innerHTML = "Circle Size: " + this.value; // Set p tag to new value
+    localStorage.size = this.value; // Save to local session for population
+    populate(); // Populate circles to screen
+}
+
+// Function to clear circles on screen
+function clearCircles() {
+    var circlegroup = document.getElementById('circle-group');
+    circlegroup.innerHTML = '';
+}
+
+// Populate function will produce circles on screen based on user input
+function populate() {
+    clearCircles(); // Clear old circles
+    
+    // Variables to used to produce user-desired circles i.e. size, color, transition speed
+    var colorDensity;
+    var transitionSpeed;
+    var sizeMin;
+    var sizeMax;
+    
+    // First time initialization, check if the website has been loaded for the first time
+    if (!localStorage.color) { // Initial Load of color
+        colorDensity = 2;
+    } else {
+        colorDensity = parseInt(localStorage.color); // Color has been specified by user.
+        console.log("Coloring circles at density: " + colorDensity);
+    }
+    if (!localStorage.speed) { // Initial load of speed
+        transitionSpeed = 4;
+    } else {
+        transitionSpeed = parseInt(localStorage.speed) * 250; // Speed specified by user.
+        console.log("Translating circles at speed: " + transitionSpeed);
+    }
+    if (!localStorage.size) { // Initial load of size
+        sizeMin = 17 - SIZE_AVG;
+        sizeMax = 17 + SIZE_AVG;
+    } else {
+        sizeMin = parseInt(localStorage.size) - SIZE_AVG; // Size specified by user.
+        sizeMax = parseInt(localStorage.size) + SIZE_AVG;
+        console.log("Sizing circles at size: " + ((sizeMax + sizeMin) / 2));
+    }
+    
+    var color = d3.scaleRainbow() // Returns color scaled based on input
+        .domain([0, colorDensity * Math.PI]);
+
+    var circles = d3.packSiblings(d3.range(2000) // Creates a pack layout based on the front-chain packing algorithm by Wang et al. https://github.com/d3/d3-hierarchy#packSiblings https://github.com/d3/d3-array#range
+        .map(d3.randomUniform(sizeMin, sizeMax)) // Generates and returns a uniform random number based on given minimum and maximum range https://github.com/d3/d3-random#randomUniform
+        .map(function(r) { return {r: r}; })) // Appends radius to each circle element created 
+      .filter(function(d) { return -500 < d.x && d.x < 500 && -500 < d.y && d.y < 500; }); // Filters circles whose x and y attr are inclusively between -500 and 500. https://github.com/d3/d3-selection#selection_filter
+
+    svg
+      .select("g")
+      .selectAll("circle")
+      .data(circles)
+      .enter().append("circle")
+        .style("fill", function(d) { return color(d.angle = Math.atan2(d.y, d.x)); }) // Appending color to a circle based on angular position, giving a smooth color transition in the svg
+        .attr("cx", function(d) { return Math.cos(d.angle) * (size / Math.SQRT2 + 30); }) // Appending x position of the center of the circle
+        .attr("cy", function(d) { return Math.sin(d.angle) * (size / Math.SQRT2 + 30); }) // Appending y position of the center of the circle
+        .attr("r", function(d) { return d.r - 0.25; }) // Appending radius to circle
+      .transition() // Transition function
+        .ease(d3.easeCubicOut) // Adds a smooth-like translation to the circles
+        .delay(function(d) { return Math.sqrt(d.x * d.x + d.y * d.y) * 10; }) // Adds a delay in between every circle's translation to the center
+        .duration(transitionSpeed) // How long or how fast should every circle translate
+        .attr("cx", function(d) { return d.x; }) // x attr destination of the center of the circle
+        .attr("cy", function(d) { return d.y; }); // y attr destination of the center of the circle
+}
+
+</script>
